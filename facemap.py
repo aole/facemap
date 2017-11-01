@@ -15,6 +15,12 @@ TODO:
 9. resize
 '''
 
+help_msg = 'Tab: toggle create/edit mode.\n'
+help_msg += 'Ctrl+i: open image file to load as background.\n'
+help_msg += 'Ctrl+o: open stored lines file.\n'
+help_msg += 'Ctrl+s: save lines to a file.\n'
+help_msg += 'm: show mirror line.\n'
+
 class Handle:
 	count = 1
 	w2 = 4
@@ -188,6 +194,7 @@ class Application:
 		# background image
 		if self.canvas.image != None:
 			self.canvas.create_image((0,0), image = self.canvas.image, anchor = tk.NW)
+		self.canvas.create_text(10,10,text=help_msg, anchor=tk.NW, fill='grey')
 		# lines
 		for h in self.lines:
 			h.draw(self.canvas)
