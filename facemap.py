@@ -15,6 +15,12 @@ TODO:
 9. resize
 '''
 
+help_msg = 'Tab: toggle create/edit mode.\n'
+help_msg += 'Ctrl+i: open image file to load as background.\n'
+help_msg += 'Ctrl+o: open stored lines file.\n'
+help_msg += 'Ctrl+s: save lines to a file.\n'
+help_msg += 'm: show mirror line.\n'
+
 class Handle:
     count = 1
     w2 = 4
