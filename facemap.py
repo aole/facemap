@@ -3,6 +3,8 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename
 from PIL import Image, ImageTk
 from tkinter import messagebox
 from tkinter import ttk
+from transformations import *
+import numpy as np
 
 ''' 
 TODO:
@@ -13,10 +15,53 @@ TODO:
 11. Panning
 12. other shapes
 13. edit only selected lines
-14. scroll bars
-15.
+16. menu help>help
+17. create a square -10,-10,0 > 10,10,0
+
+CHANGES:
+15. add status bar
 '''
 
+class Object3D:
+    def __init__( self ):
+        self.verts = []
+        self.polys = []
+    
+    def get_vert_count( self ):
+        return len(self.verts)
+    
+    def get_poly_count( self ):
+        return len( self.polys )
+        
+    def add_verts( self, vertices ):
+        self.verts.extend( vertices )
+    
+    def add_polygon( self, indices ):
+        self.polys.append( indices )
+
+class Viewport3D:
+    def __init__( self, view_coords, screen_coords ):
+        self.vc = view_coords
+        self.sc = screen_coords
+    
+    def set_view( self, view_coords ):
+        self.vc = view_coords
+    
+    def set_screen( self, screen_coords ):
+        self.sc = screen_coords
+    
+    def transform_verts( self, verts ):
+        # scale
+        # rotate
+        # translate
+        t = self.translate
+        
+        tverts = []
+        for v in self.verts:
+            tverts.append( (v[0]+t[0], v[1]+t[1], v[2]+t[2]) )
+        
+        return tverts
+    
 class Handle:
     count = 1
     w2 = 4
@@ -34,15 +79,17 @@ class Handle:
             self.handle.update( self.x1, self.y1 )
 
     class HandleDeleteAction:
-        def __init__(self, line, handle):
-            self.line = line
+        def __init__(self, canvas, handle):
+            self.canvas = canvas
+            self.line = handle.line
             self.handle = handle
             
         def redo(self):
             self.line.remove_handle( self.handle )
         
         def undo(self):
-            self.handle.update( self.x1, self.y1 )
+            coords = self.canvas.coords( self.handle.shape )
+            self.line.add_handle( self.handle, coords[0]-self.handle.w2, coords[1]-self.handle.h2, self.handle.index )
 
     def __init__( self, app, x, y, line, index ):
         self.app = app
@@ -51,13 +98,14 @@ class Handle:
         self.index = index
         
         self.mousedown = False
+        self.visible = True
         
         self.shape = self.canvas.create_rectangle( x-self.w2, y-self.h2, x+self.w2, y+self.h2, activeoutline='#BBBBEE' )
         
         self.canvas.tag_bind( self.shape, '<Button-1>', self.on_left_click )
         self.canvas.tag_bind( self.shape, '<ButtonRelease-1>', self.on_left_up )
         self.canvas.tag_bind( self.shape, '<B1-Motion>', self.on_left_drag )
-        self.canvas.tag_bind( self.shape, '<Control-ButtonPress-1>', self.ctrl_left_mouse_down)
+        self.canvas.tag_bind( self.shape, '<Control-ButtonRelease-1>', self.ctrl_left_mouse_up)
         
     def getCoords( self ):
         coords = self.canvas.coords( self.shape )
@@ -71,21 +119,33 @@ class Handle:
         self.canvas.itemconfig( self.shape, state=state )
         
     def on_left_click( self, event ):
+        x = self.canvas.canvasx( event.x )
+        y = self.canvas.canvasy( event.y )
         self.mousedown = True
-        self.prevx, self.prevy = self.origx, self.origy = event.x, event.y
+        self.prevx, self.prevy = self.origx, self.origy = x, y
+        return 'break'
         
     def on_left_up( self, event ):
+        x = self.canvas.canvasx( event.x )
+        y = self.canvas.canvasy( event.y )
         if self.mousedown:
-            self.app.undomanager.add( Handle.LineEditAction( self, self.origx, self.origy, event.x, event.y ) )
+            self.app.undomanager.add( Handle.LineEditAction( self, self.origx, self.origy, x, y ) )
         self.mousedown = False
+        return 'break'
         
     def on_left_drag( self, event ):
-        dx, dy = event.x-self.prevx, event.y-self.prevy
-        self.move( dx, dy )
-        self.prevx, self.prevy = event.x, event.y
+        x = self.canvas.canvasx( event.x )
+        y = self.canvas.canvasy( event.y )
+        if self.mousedown:
+            dx, dy = x-self.prevx, y-self.prevy
+            self.move( dx, dy )
+        self.prevx, self.prevy = x, y
 
-    def ctrl_left_mouse_down( self, event ):
+    def ctrl_left_mouse_up( self, event ):
+        self.app.undomanager.add( Handle.HandleDeleteAction( self.canvas, self ) )
         self.line.remove_handle( self )
+        print( 'handle:', event.widget )
+        return "break"
         
     def update( self, x, y ):
         coords = self.canvas.coords( self.shape )
@@ -104,7 +164,7 @@ class Handle:
         self.canvas.coords( line.shape, line_coords )
             
     def show( self ):
-        if app.is_edit_mode() and self.line.is_visible():
+        if app.is_edit_mode() and self.line.is_visible() and self.visible:
             self.canvas.itemconfig( self.shape, state=tk.NORMAL )
         else:
             self.canvas.itemconfig( self.shape, state=tk.HIDDEN )
@@ -147,17 +207,21 @@ class Line:
         self.set_visible( True )
         
     def ctrl_left_mouse_down( self, event ):
+        x = self.canvas.canvasx( event.x )
+        y = self.canvas.canvasy( event.y )
         if self.editable:
             replace_index = self.handles[-1].index
-            handle = Handle( self.app, event.x, event.y, self, replace_index )
-            self.add_handle( handle, event.x, event.y, replace_index )
-            self.app.undomanager.add( Line.HandleAddAction( self, handle, event.x, event.y ) )
+            handle = Handle( self.app, x, y, self, replace_index )
+            self.add_handle( handle, x, y, replace_index )
+            self.app.undomanager.add( Line.HandleAddAction( self, handle, x, y ) )
+
             
     def add_handle( self, handle, x, y, index ):
         for idx in range( index, len(self.handles) ):
             self.handles[idx].index += 1
             
         self.handles.insert( index, handle )
+        handle.visible = True
 
         line_coords = self.canvas.coords( self.shape )
         line_coords.insert( index*2, y )
@@ -171,6 +235,7 @@ class Line:
             return
             
         self.handles.remove( handle )
+        handle.visible = False
         
         index = handle.index
         line_coords = self.canvas.coords( self.shape )
@@ -229,8 +294,10 @@ class UndoManager:
         self.redos.clear()
     
     def undo(self):
+        print('undo')
         try:
             command = self.undos.pop()
+            print( command )
             command.undo()
             self.redos.append(command)
         except IndexError:
@@ -244,6 +311,15 @@ class UndoManager:
         except IndexError:
             pass
 
+class StatusBar( tk.Label ):   
+    def __init__( self, master ):
+        self.variable = tk.StringVar()
+        tk.Label.__init__( self, master, bd=1, relief = tk.SUNKEN, anchor = tk.W, textvariable = self.variable, font=('arial',12,'normal' ))
+        self.pack( fill = tk.X )
+        
+    def set( self, text ):
+        self.variable.set( text )
+        
 class Application( tk.Frame ):
     
     mousedown = False #is mouse button down
@@ -287,21 +363,25 @@ class Application( tk.Frame ):
 
         tk.Frame.__init__( self, self.root )
         
-        self.canvas = tk.Canvas( self, closeenough=5 )
+        self.canvas = tk.Canvas( self, closeenough = 5 )
+        
+        self.statusbar = StatusBar( self.root )
+        self.statusbar.set( 'Status Bar' )
         
         self.canvas.image = None
         self.image_shape = None
         
         vbar = ttk.Scrollbar( self, orient='vertical', command=self.canvas.yview )
         hbar = ttk.Scrollbar( self, orient='horizontal', command=self.canvas.xview )
-        self.canvas.configure( yscrollcommand=vbar.set, xscrollcommand=hbar.set )
-        self.canvas.configure( scrollregion=(-500,-500,500,500) )
         
         hbar.grid(row=1, column=0, sticky="ew")
         vbar.grid(row=0, column=1, sticky="ns")
-        self.canvas.grid(row=0, column=0, sticky='nswe')
         self.grid_rowconfigure( 0, weight=1 )
         self.grid_columnconfigure( 0, weight=1 )
+        
+        self.canvas.configure( yscrollcommand=vbar.set, xscrollcommand=hbar.set )
+        self.canvas.configure( scrollregion=(-500,-500,500,500) )
+        self.canvas.grid( row=0, column=0, sticky='nswe' )
         
         #self.root.bind( '<Configure>', self.resize )
         self.root.bind( '<Control-Key-i>', self.key_control_i )
@@ -313,11 +393,14 @@ class Application( tk.Frame ):
         self.root.bind( '<Key-F1>', self.key_F1 )
         
         self.canvas.bind( '<ButtonPress-1>', self.left_mouse_down ) #left mouse down
+        self.canvas.bind( '<B1-Motion>', self.left_mouse_move )
         self.canvas.bind( '<ButtonRelease-1>', self.left_mouse_up ) #left mouse up
-        self.canvas.bind( '<Motion>', self.mouse_move )
         self.canvas.bind( '<Key-Tab>', self.key_tab )
         self.canvas.bind( '<Key-Delete>', self.key_delete )
         self.canvas.bind( '<Enter>', self.mouse_enter )
+        
+        self.canvas.bind( '<ButtonPress-2>', self.right_mouse_down ) #left mouse down
+        self.canvas.bind( '<B2-Motion>', self.right_mouse_move )
         
         #self.canvas.pack( fill=tk.BOTH, expand=1 )
 
@@ -353,36 +436,52 @@ class Application( tk.Frame ):
                 self.canvas.itemconfig( ht, state=tk.NORMAL )
             
     def left_mouse_down( self, event ):
+        x = self.canvas.canvasx( event.x )
+        y = self.canvas.canvasy( event.y )
+        print( 'canvas down' )
         self.mousedown = True
-        self.prevx, self.prevy = self.origx, self.origy = event.x, event.y
+        self.prevx, self.prevy = self.origx, self.origy = x, y
     
-    def mouse_move( self, event ):
+    def left_mouse_move( self, event ):
+        x = self.canvas.canvasx( event.x )
+        y = self.canvas.canvasy( event.y )
         if self.mousemode==1:
             if self.currentLine:
-                self.currentLine.update_end( event.x, event.y )
+                self.currentLine.update_end( x, y )
             elif self.mousedown:
-                line = Line( self, [self.origx, self.origy, event.x, event.y] )
+                line = Line( self, [self.origx, self.origy, x, y] )
                 self.currentLine = line
                 
-        self.prevx, self.prevy = event.x, event.y
+        self.prevx, self.prevy = x, y
     
     def left_mouse_up( self, event ):
-        self.mousedown = False
-        if self.origx==event.x and self.origy==event.y:
+        x = self.canvas.canvasx( event.x )
+        y = self.canvas.canvasy( event.y )
+        if self.origx == x and self.origy == y and self.mousedown:
             lineshape = self.canvas.find_withtag( tk.CURRENT )
             try:
                 line = self.linesMap[lineshape[0]]
             except:
                 line = None
             self.select_line( line )
+            print( 'canvas up:', event.widget )
         else:
             if self.mousemode==1:
                 self.add_line( self.currentLine )
     
             self.currentLine = None
             
-        self.prevx, self.prevy = event.x, event.y
+        self.prevx, self.prevy = x, y
+        self.mousedown = False
 
+    def right_mouse_down( self, event ):
+        x = self.canvas.canvasx( event.x )
+        y = self.canvas.canvasy( event.y )
+    
+    def right_mouse_move( self, event ):
+        x = self.canvas.canvasx( event.x )
+        y = self.canvas.canvasy( event.y )
+    
     def add_line( self, line, fromFile = False ):
         self.lines.append( line )
         self.linesMap[line.shape] = line
@@ -488,7 +587,26 @@ class Application( tk.Frame ):
     def is_edit_mode( self ):
         return self.mousemode == 2
         
+'''
+# test 3d
+v = (-50,0,-10)
+#M = projection_matrix( [5,0,0],[0,5,0] )
+# M = clip_matrix( -100, 100, -100, 100, 0, 1000 )
+
+T = compose_matrix(scale=None, shear=None, angles=(0,1,0), translate=(1,5,2), perspective=None)
+C = clip_matrix( 0, 100, 0, 100, 0, 1000 )
+M = concatenate_matrices( T, C )
+#vt = M[:3,:3] * v + M[:3,3:].T
+vt = numpy.dot( M[:3,:3], v ) + M[:3,3:].T
+
+print(v)
+print(M)
+print(vt)
+#
+
+'''
 app = Application(480, 480)
 app.pack(fill="both", expand=True)
 app.load( open('test.txt', 'r') )
 app.run()
+#'''
