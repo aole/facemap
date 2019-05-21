@@ -2,7 +2,46 @@
 import math
 import wx
 
-class Handle:
+class UIElement:
+    def move(self, dx = 0, dy = 0, event=None):
+        pass
+    
+    def draw(self, gc):
+        pass
+        
+    def contains(self, x, y):
+        return False
+        
+    def scale(self, s=1, event=None):
+        pass
+        
+class Image(wx.Bitmap, UIElement):
+    def __init__(self, file, x, y):
+        image = wx.Image(file)
+        image = image.AdjustChannels(1,1,1,.4)
+        super().__init__(image)
+        self.bitmapx, self.bitmapy = x, y
+        self.bitmapw = image.GetWidth()
+        self.bitmaph = image.GetHeight()
+        self.bitmapwh = self.bitmapw/self.bitmaph
+        
+    def draw(self, gc):
+        gc.DrawBitmap(self, self.bitmapx, self.bitmapy, int(self.bitmapw), int(self.bitmaph))
+        
+    def move(self, dx = 0, dy = 0, event=None):
+        if event.ControlDown():
+            self.bitmapx += dx
+            self.bitmapy += dy
+        
+    def contains(self, x, y, event):
+        return x>=self.bitmapx and x<self.bitmapx+self.bitmapw and y>=self.bitmapy and y<self.bitmapy+self.bitmaph
+        
+    def scale(self, s, event=None):
+        if event.ControlDown():
+            self.bitmaph += s
+            self.bitmapw += s * self.bitmapwh
+    
+class Handle(UIElement):
     def __init__(self, name, x, y):
         self.name = name
         self.x, self.y = x, y
@@ -45,7 +84,7 @@ class Handle:
             self.y += delta
         self.rect = wx.Rect(self.x-5, self.y-5, 10, 10)
             
-    def move(self, dx = 0, dy = 0):
+    def move(self, dx = 0, dy = 0, event=None):
         self.moveX(dx)
         self.moveY(dy)
         
@@ -97,11 +136,20 @@ class Head(Shape):
         self.mouth_handle.setConstraints(canx=False)
         self.addHandle(self.mouth_handle)
         
-    def draw(self, gc):
+        self.hairline_handle = Handle('Hairline', 0, -30)
+        self.hairline_handle.setConstraints(canx=False)
+        self.addHandle(self.hairline_handle)
+        
+    def draw(self, vp, gc):
+        gc.SetBrush(wx.NullBrush)
+            
         # head shape
+        gc.SetPen(vp.TBLACK_PEN_100)
         path = gc.CreatePath()
         path.AddArc(0, 0, self.head_handle.x, math.radians(180), math.radians(0), True)
         gc.StrokePath(path)
+        
+        gc.SetPen(vp.BLACK_PEN)
         
         # jaw lines
         gc.StrokeLine(-self.head_handle.x, self.head_handle.y, -self.jaw_handle.x, self.jaw_handle.y)
@@ -199,8 +247,19 @@ class Head(Shape):
         path = gc.CreatePath()
         path.AddArc(0, self.mouth_handle.y-10, 6, math.radians(140), math.radians(40), False)
         gc.StrokePath(path)
+        
+        gc.StrokeLine(-8, self.mouth_handle.y+7, 8, self.mouth_handle.y+7)
+        #path = gc.CreatePath()
+        #path.AddArc(0, self.mouth_handle.y+17, 8, math.radians(220), math.radians(-40), True)
+        #gc.StrokePath(path)
+        
+        # hairline
+        gc.StrokeLines(((0, self.hairline_handle.y),(-15, self.hairline_handle.y-5),(-30, self.hairline_handle.y+5),(-40, self.hairline_handle.y+20),(-35, self.hairline_handle.y+35),(-45, self.hairline_handle.y+45)))
+        
+        gc.StrokeLines(((0, self.hairline_handle.y),( 15, self.hairline_handle.y-5),( 30, self.hairline_handle.y+5),( 40, self.hairline_handle.y+20),( 35, self.hairline_handle.y+35),( 45, self.hairline_handle.y+45)))
+        
         path = gc.CreatePath()
-        path.AddArc(0, self.mouth_handle.y+17, 8, math.radians(220), math.radians(-40), True)
+        path.AddArc(0, 0, self.head_handle.x+8, math.radians(160), math.radians(20), True)
         gc.StrokePath(path)
         
 class Viewport( wx.Panel ):
@@ -213,13 +272,14 @@ class Viewport( wx.Panel ):
         self.panx, self.pany = 200, 100
         self.gridsize = 50
     
-        self.hovered_handle = None
+        self.hovered_element = None
         
         self.GRAY_BRUSH_200 = wx.Brush(wx.Colour(200,200,200))
         self.TGRAY_BRUSH_100 = wx.Brush(wx.Colour(100,100,100, 200))
         self.TBLUE_BRUSH_200 = wx.Brush(wx.Colour(150,150,220, 200))
         
         self.BLACK_PEN = wx.Pen(wx.Colour(0,0,0))
+        self.TBLACK_PEN_100 = wx.Pen(wx.Colour(0,0,0, 100))
         self.GRAY_PEN_100 = wx.Pen(wx.Colour(100,100,100))
         self.GRAY_PEN_150 = wx.Pen(wx.Colour(150,150,150))
         
@@ -229,21 +289,22 @@ class Viewport( wx.Panel ):
 
     def InitUI(self):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
+        self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
         self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnSize)
         
         self.font = self.GetFont()
         
+        self.bgImage = Image('facemap.jpg', -self.panx, -self.pany)
+        
     def OnEraseBackground(self, event):
         pass
         
     def OnPaint(self, event):
         dc = wx.AutoBufferedPaintDC(self)
-        dc.Clear()
         
         gc = wx.GraphicsContext.Create(dc)
-        gc.SetFont(self.font, wx.Colour(0,0,0))
         
         # paint background
         w, h = gc.GetSize()
@@ -268,21 +329,23 @@ class Viewport( wx.Panel ):
         
         # draw shapes
         for shape in self.shapes:
-            gc.SetPen(self.BLACK_PEN)
-            gc.SetBrush(wx.NullBrush)
-            shape.draw(gc)
+            shape.draw(self, gc)
             ''' # to draw all handles
             for handle in shape.getHandles():
-                if handle == self.hovered_handle:
+                if handle == self.hovered_element:
                     gc.SetBrush(self.TBLUE_BRUSH_200)
                 else:
                     gc.SetBrush(self.TGRAY_BRUSH_100)
                 handle.draw(gc)
             '''
-        if self.hovered_handle:
+        if self.hovered_element and type(self.hovered_element)==Handle :
             gc.SetBrush(self.TGRAY_BRUSH_100)
-            self.hovered_handle.draw(gc)
+            self.hovered_element.draw(gc)
             
+        # draw bitmap
+        if self.bgImage:
+            self.bgImage.draw(gc)
+        
     def OnSize(self, e):
         self.Refresh()
 
@@ -296,23 +359,33 @@ class Viewport( wx.Panel ):
                 self.panx += dx
                 self.pany += dy
             elif event.LeftIsDown():
-                if self.hovered_handle:
-                    self.hovered_handle.move(dx, dy)
-                    
+                if self.hovered_element:
+                    # move shape handles
+                    self.hovered_element.move(dx, dy, event)
         else: # event.Dragging
-            self.hovered_handle = None
+            self.hovered_element = None
             found = False
             for shape in self.shapes:
                 for handle in shape.getHandles():
                     if handle.contains(x-self.panx, y-self.pany):
-                        self.hovered_handle = handle
+                        self.hovered_element = handle
                         found = True
                         break
                 if found:
                     break
+            if not found:
+                if self.bgImage.contains(x-self.panx, y-self.pany, event):
+                    self.hovered_element = self.bgImage
                     
         self.Refresh()
+    
+    def OnMouseWheel(self, event):
+        if self.hovered_element:
+            s = event.GetLinesPerAction()* event.GetWheelRotation()/120
+            self.hovered_element.scale(s, event)
         
+        self.Refresh()
+    
 class MainFrame(wx.Frame):
     def __init__(self, *args, **kw):
         super().__init__(*args, **kw)
