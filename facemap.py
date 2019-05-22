@@ -125,14 +125,14 @@ class Head(Shape):
         self.chin_handle = Handle('Chin', 0, 95)
         self.addHandle(self.chin_handle)
         
-        self.eyes_handle = Handle('Eyes', 25, 25)
+        self.eyes_handle = Handle('Eyes', 24, 23)
         self.addHandle(self.eyes_handle)
         
         self.nose_handle = Handle('Nose', 0, 55)
         self.nose_handle.setConstraints(canx=False)
         self.addHandle(self.nose_handle)
         
-        self.mouth_handle = Handle('Mouth', 0, 68)
+        self.mouth_handle = Handle('Mouth', 0, 66)
         self.mouth_handle.setConstraints(canx=False)
         self.addHandle(self.mouth_handle)
         
@@ -143,36 +143,90 @@ class Head(Shape):
     def draw(self, vp, gc):
         gc.SetBrush(wx.NullBrush)
             
-        # head shape
-        gc.SetPen(vp.TBLACK_PEN_100)
-        path = gc.CreatePath()
-        path.AddArc(0, 0, self.head_handle.x, math.radians(180), math.radians(0), True)
-        gc.StrokePath(path)
-        
         gc.SetPen(vp.BLACK_PEN)
         
-        # jaw lines
-        gc.StrokeLine(-self.head_handle.x, self.head_handle.y, -self.jaw_handle.x, self.jaw_handle.y)
-        gc.StrokeLine(self.head_handle.x, self.head_handle.y, self.jaw_handle.x, self.jaw_handle.y)
+        # head shape
+        path1 = gc.CreatePath()
+        path1.AddArc(0, 0, self.head_handle.x, math.radians(180), math.radians(0), True)
         
-        # draw chin
-        gc.StrokeLine(-self.jaw_handle.x, self.jaw_handle.y, -self.chin_width_handle.x, self.chin_width_handle.y)
-        gc.StrokeLine(-self.chin_width_handle.x, self.chin_width_handle.y, 0, self.chin_handle.y)
-        gc.StrokeLine(self.jaw_handle.x, self.jaw_handle.y, self.chin_width_handle.x, self.chin_width_handle.y)
-        gc.StrokeLine(self.chin_width_handle.x, self.chin_width_handle.y, 0, self.chin_handle.y)
+        
+        path1.AddLineToPoint(self.jaw_handle.x, self.jaw_handle.y)
+        path1.AddLineToPoint(self.chin_width_handle.x, self.chin_width_handle.y)
+        path1.AddLineToPoint(0, self.chin_handle.y)
+        path1.AddLineToPoint(-self.chin_width_handle.x, self.chin_width_handle.y)
+        path1.AddLineToPoint(-self.jaw_handle.x, self.jaw_handle.y)
+
+        path1.CloseSubpath()
+        
+        gc.SetBrush(vp.SKIN_BASE_BRUSH)
+        gc.FillPath(path1)
+        
+        gc.SetBrush(vp.SKIN_LIT0_BRUSH)
+        path2 = gc.CreatePath()
+        path2.MoveToPoint(-42, -18)
+        path2.AddLineToPoint(-32, 12)
+        path2.AddLineToPoint(-14, 14)
+        path2.AddLineToPoint(-25, -40)
+        path2.CloseSubpath()
+        gc.FillPath(path2)
+        '''
+        gc.SetBrush(vp.SKIN_BASE_BRUSH)
+        path2 = gc.CreatePath()
+        path2.MoveToPoint(25, -40)
+        path2.AddLineToPoint(14, 14)
+        path2.AddLineToPoint(-14, 14)
+        path2.AddLineToPoint(-25, -40)
+        path2.CloseSubpath()
+        gc.FillPath(path2)
+        '''
+        '''
+        gc.SetBrush(gc.CreateLinearGradientBrush(-35, -25, 0, -27, wx.Colour(234,210,184), wx.Colour(222,191,162)))
+        path2 = gc.CreatePath()
+        path2.MoveToPoint(-33, -29)
+        path2.AddLineToPoint(-23, 13)
+        path2.AddLineToPoint(0, 14)
+        path2.AddLineToPoint(0, -40)
+        path2.CloseSubpath()
+        gc.FillPath(path2)
+        '''
+        gc.SetBrush(vp.SKIN_LIT2_BRUSH)
+        path2 = gc.CreatePath()
+        path2.MoveToPoint(42, -18)
+        path2.AddLineToPoint(32, 12)
+        path2.AddLineToPoint(14, 14)
+        path2.AddLineToPoint(25, -40)
+        path2.CloseSubpath()
+        gc.FillPath(path2)
+        '''
+        gc.SetBrush(gc.CreateLinearGradientBrush(0, -27, 35, -27, wx.Colour(222,191,162), wx.Colour(156,93,86)))
+        path2 = gc.CreatePath()
+        path2.MoveToPoint(30, -29)
+        path2.AddLineToPoint(23, 13)
+        path2.AddLineToPoint(0, 14)
+        path2.AddLineToPoint(0, -40)
+        path2.CloseSubpath()
+        gc.FillPath(path2)
+        '''
+        gc.StrokePath(path1)
+        gc.SetBrush(wx.NullBrush)
         
         # eyes
+        gc.SetBrush(vp.GRAY_BRUSH_220)
         gc.DrawEllipse(-self.eyes_handle.x-13, self.eyes_handle.y-4, 25, 8)
+        gc.DrawEllipse(self.eyes_handle.x-13, self.eyes_handle.y-4, 25, 8)
+        
+        # eye balls
+        gc.SetBrush(vp.BLACK_BRUSH)
         path = gc.CreatePath()
         path.AddArc(self.eyes_handle.x, self.eyes_handle.y-2, 6, math.radians(180), math.radians(0), False)
-        gc.StrokePath(path)
-        
-        gc.DrawEllipse(self.eyes_handle.x-13, self.eyes_handle.y-4, 25, 8)
+        gc.DrawPath(path)
         path = gc.CreatePath()
         path.AddArc(-self.eyes_handle.x, self.eyes_handle.y-2, 6, math.radians(180), math.radians(0), False)
-        gc.StrokePath(path)
+        gc.DrawPath(path)
+        gc.SetBrush(wx.NullBrush)
         
         # eyebrows
+        gc.SetBrush(vp.GRAY_BRUSH_50)
         path = gc.CreatePath()
         path.MoveToPoint(-self.eyes_handle.x-18, self.eyes_handle.y-2)
         path.AddLineToPoint(-self.eyes_handle.x-11, self.eyes_handle.y-10)
@@ -180,35 +234,35 @@ class Head(Shape):
         path.AddLineToPoint(-self.eyes_handle.x+11, self.eyes_handle.y-11)
         path.AddLineToPoint(-self.eyes_handle.x-11, self.eyes_handle.y-14)
         path.CloseSubpath()
-        gc.StrokePath(path)
         
-        path = gc.CreatePath()
         path.MoveToPoint(self.eyes_handle.x+18, self.eyes_handle.y-2)
         path.AddLineToPoint(self.eyes_handle.x+11, self.eyes_handle.y-10)
         path.AddLineToPoint(self.eyes_handle.x-13, self.eyes_handle.y-7)
         path.AddLineToPoint(self.eyes_handle.x-11, self.eyes_handle.y-11)
         path.AddLineToPoint(self.eyes_handle.x+11, self.eyes_handle.y-14)
         path.CloseSubpath()
-        gc.StrokePath(path)
+        gc.DrawPath(path)
+        gc.SetBrush(wx.NullBrush)
         
         # nose
         path = gc.CreatePath()
-        path.MoveToPoint(0, self.nose_handle.y)
+        path.MoveToPoint(-4, self.nose_handle.y)
         path.AddLineToPoint(4, self.nose_handle.y)
-        path.AddLineToPoint(10, self.nose_handle.y-5)
-        path.AddLineToPoint(8, self.nose_handle.y-15)
-        path.AddLineToPoint(6, self.nose_handle.y-15)
-        gc.DrawEllipse(2, self.nose_handle.y-4, 5, 2)
+        
+        path.MoveToPoint(7, self.nose_handle.y)
+        path.AddLineToPoint(12, self.nose_handle.y-4)
+        path.AddLineToPoint(8, self.nose_handle.y-10)
+        
+        path.MoveToPoint(-7, self.nose_handle.y)
+        path.AddLineToPoint(-12, self.nose_handle.y-4)
+        path.AddLineToPoint(-8, self.nose_handle.y-10)
+        
         gc.StrokePath(path)
         
-        path = gc.CreatePath()
-        path.MoveToPoint(0, self.nose_handle.y)
-        path.AddLineToPoint(-4, self.nose_handle.y)
-        path.AddLineToPoint(-10, self.nose_handle.y-5)
-        path.AddLineToPoint(-8, self.nose_handle.y-15)
-        path.AddLineToPoint(-6, self.nose_handle.y-15)
-        gc.DrawEllipse(-7, self.nose_handle.y-4, 5, 2)
-        gc.StrokePath(path)
+        gc.SetBrush(vp.GRAY_BRUSH_50)
+        gc.DrawEllipse(2, self.nose_handle.y-3, 5, 2)
+        gc.DrawEllipse(-7, self.nose_handle.y-3, 5, 2)
+        gc.SetBrush(wx.NullBrush)
         
         # ears
         path = gc.CreatePath()
@@ -218,28 +272,29 @@ class Head(Shape):
         path.AddLineToPoint(self.head_handle.x+8, self.eyes_handle.y+6)
         path.AddLineToPoint(self.head_handle.x+4, self.eyes_handle.y+20)
         path.AddLineToPoint(self.head_handle.x-4, self.nose_handle.y)
-        gc.StrokePath(path)
         
-        path = gc.CreatePath()
         path.MoveToPoint(-self.head_handle.x, self.eyes_handle.y)
         path.AddLineToPoint(-self.head_handle.x-4, self.eyes_handle.y-4)
         path.AddLineToPoint(-self.head_handle.x-8, self.eyes_handle.y-4)
         path.AddLineToPoint(-self.head_handle.x-8, self.eyes_handle.y+6)
         path.AddLineToPoint(-self.head_handle.x-4, self.eyes_handle.y+20)
         path.AddLineToPoint(-self.head_handle.x+4, self.nose_handle.y)
-        gc.StrokePath(path)
+        
+        gc.SetBrush(vp.SKIN_BASE_BRUSH)
+        gc.DrawPath(path)
+        gc.SetBrush(wx.NullBrush)
         
         # mouth
         path = gc.CreatePath()
         path.MoveToPoint(0, self.mouth_handle.y)
-        path.AddLineToPoint(5, self.mouth_handle.y+2)
+        path.AddLineToPoint(5, self.mouth_handle.y-2)
         path.AddLineToPoint(self.eyes_handle.x-6, self.mouth_handle.y)
         gc.DrawEllipse(self.eyes_handle.x-6, self.mouth_handle.y-2, 4, 2)
         gc.StrokePath(path)
         
         path = gc.CreatePath()
         path.MoveToPoint(0, self.mouth_handle.y)
-        path.AddLineToPoint(-5, self.mouth_handle.y+2)
+        path.AddLineToPoint(-5, self.mouth_handle.y-2)
         path.AddLineToPoint(-self.eyes_handle.x+6, self.mouth_handle.y)
         gc.DrawEllipse(-self.eyes_handle.x+2, self.mouth_handle.y-2, 4, 2)
         gc.StrokePath(path)
@@ -249,18 +304,29 @@ class Head(Shape):
         gc.StrokePath(path)
         
         gc.StrokeLine(-8, self.mouth_handle.y+7, 8, self.mouth_handle.y+7)
-        #path = gc.CreatePath()
-        #path.AddArc(0, self.mouth_handle.y+17, 8, math.radians(220), math.radians(-40), True)
-        #gc.StrokePath(path)
         
-        # hairline
-        gc.StrokeLines(((0, self.hairline_handle.y),(-15, self.hairline_handle.y-5),(-30, self.hairline_handle.y+5),(-40, self.hairline_handle.y+20),(-35, self.hairline_handle.y+35),(-45, self.hairline_handle.y+45)))
-        
-        gc.StrokeLines(((0, self.hairline_handle.y),( 15, self.hairline_handle.y-5),( 30, self.hairline_handle.y+5),( 40, self.hairline_handle.y+20),( 35, self.hairline_handle.y+35),( 45, self.hairline_handle.y+45)))
-        
+        # hair
         path = gc.CreatePath()
+        path.MoveToPoint(0, self.hairline_handle.y)
+        path.AddLineToPoint(-15, self.hairline_handle.y-5)
+        path.AddLineToPoint(-30, self.hairline_handle.y+5)
+        path.AddLineToPoint(-40, self.hairline_handle.y+20)
+        path.AddLineToPoint(-35, self.hairline_handle.y+35)
+        path.AddLineToPoint(-45, self.hairline_handle.y+45)
+        
         path.AddArc(0, 0, self.head_handle.x+8, math.radians(160), math.radians(20), True)
-        gc.StrokePath(path)
+        
+        path.AddLineToPoint(45, self.hairline_handle.y+45)
+        path.AddLineToPoint(35, self.hairline_handle.y+35)
+        path.AddLineToPoint(40, self.hairline_handle.y+20)
+        path.AddLineToPoint(30, self.hairline_handle.y+5)
+        path.AddLineToPoint(15, self.hairline_handle.y-5)
+        
+        path.CloseSubpath()
+        
+        gc.SetBrush(vp.GRAY_BRUSH_50)
+        gc.DrawPath(path)
+        gc.SetBrush(wx.NullBrush)
         
 class Viewport( wx.Panel ):
     def __init__(self, parent, shapes):
@@ -274,7 +340,15 @@ class Viewport( wx.Panel ):
     
         self.hovered_element = None
         
+        self.BLACK_BRUSH = wx.Brush(wx.Colour(0,0,0))
+        self.WHITE_BRUSH = wx.Brush(wx.Colour(255,255,255))
+        self.SKIN_LIT0_BRUSH = wx.Brush(wx.Colour(234,210,184))
+        self.SKIN_LIT2_BRUSH = wx.Brush(wx.Colour(156,93,86))
+        self.SKIN_BASE_BRUSH = wx.Brush(wx.Colour(222,191,162))
+        self.SKIN_SHADOW_BRUSH = wx.Brush(wx.Colour(90,47,57))
+        self.GRAY_BRUSH_50 = wx.Brush(wx.Colour(50,50,50))
         self.GRAY_BRUSH_200 = wx.Brush(wx.Colour(200,200,200))
+        self.GRAY_BRUSH_220 = wx.Brush(wx.Colour(220,220,220))
         self.TGRAY_BRUSH_100 = wx.Brush(wx.Colour(100,100,100, 200))
         self.TBLUE_BRUSH_200 = wx.Brush(wx.Colour(150,150,220, 200))
         
@@ -296,7 +370,8 @@ class Viewport( wx.Panel ):
         
         self.font = self.GetFont()
         
-        self.bgImage = Image('facemap.jpg', -self.panx, -self.pany)
+        self.bgImage = None
+        #self.bgImage = Image('facemap.jpg', -self.panx, -self.pany)
         
     def OnEraseBackground(self, event):
         pass
@@ -338,7 +413,7 @@ class Viewport( wx.Panel ):
                     gc.SetBrush(self.TGRAY_BRUSH_100)
                 handle.draw(gc)
             '''
-        if self.hovered_element and type(self.hovered_element)==Handle :
+        if self.hovered_element and type(self.hovered_element)==Handle:
             gc.SetBrush(self.TGRAY_BRUSH_100)
             self.hovered_element.draw(gc)
             
@@ -351,6 +426,7 @@ class Viewport( wx.Panel ):
 
     def OnMouseMotion(self, event):
         x, y = event.GetPosition()
+        print(x-self.panx, y-self.pany)
         dx, dy = x-self.lastx, y-self.lasty
         self.lastx, self.lasty = x, y
         
@@ -373,7 +449,7 @@ class Viewport( wx.Panel ):
                         break
                 if found:
                     break
-            if not found:
+            if not found and self.bgImage:
                 if self.bgImage.contains(x-self.panx, y-self.pany, event):
                     self.hovered_element = self.bgImage
                     
