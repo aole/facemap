@@ -125,7 +125,7 @@ class Head(Shape):
         self.chin_handle = Handle('Chin', 0, 95)
         self.addHandle(self.chin_handle)
         
-        self.eyes_handle = Handle('Eyes', 24, 23)
+        self.eyes_handle = Handle('Eyes', 22, 23)
         self.addHandle(self.eyes_handle)
         
         self.nose_handle = Handle('Nose', 0, 55)
@@ -140,7 +140,7 @@ class Head(Shape):
         self.hairline_handle.setConstraints(canx=False)
         self.addHandle(self.hairline_handle)
         
-    def draw(self, vp, gc):
+    def draw(self, vp, gc, shaded):
         gc.SetBrush(wx.NullBrush)
             
         gc.SetPen(vp.BLACK_PEN)
@@ -158,54 +158,55 @@ class Head(Shape):
 
         path1.CloseSubpath()
         
-        gc.SetBrush(vp.SKIN_BASE_BRUSH)
-        gc.FillPath(path1)
-        
-        gc.SetBrush(vp.SKIN_LIT0_BRUSH)
-        path2 = gc.CreatePath()
-        path2.MoveToPoint(-42, -18)
-        path2.AddLineToPoint(-32, 12)
-        path2.AddLineToPoint(-14, 14)
-        path2.AddLineToPoint(-25, -40)
-        path2.CloseSubpath()
-        gc.FillPath(path2)
-        '''
-        gc.SetBrush(vp.SKIN_BASE_BRUSH)
-        path2 = gc.CreatePath()
-        path2.MoveToPoint(25, -40)
-        path2.AddLineToPoint(14, 14)
-        path2.AddLineToPoint(-14, 14)
-        path2.AddLineToPoint(-25, -40)
-        path2.CloseSubpath()
-        gc.FillPath(path2)
-        '''
-        '''
-        gc.SetBrush(gc.CreateLinearGradientBrush(-35, -25, 0, -27, wx.Colour(234,210,184), wx.Colour(222,191,162)))
-        path2 = gc.CreatePath()
-        path2.MoveToPoint(-33, -29)
-        path2.AddLineToPoint(-23, 13)
-        path2.AddLineToPoint(0, 14)
-        path2.AddLineToPoint(0, -40)
-        path2.CloseSubpath()
-        gc.FillPath(path2)
-        '''
-        gc.SetBrush(vp.SKIN_LIT2_BRUSH)
-        path2 = gc.CreatePath()
-        path2.MoveToPoint(42, -18)
-        path2.AddLineToPoint(32, 12)
-        path2.AddLineToPoint(14, 14)
-        path2.AddLineToPoint(25, -40)
-        path2.CloseSubpath()
-        gc.FillPath(path2)
-        '''
-        gc.SetBrush(gc.CreateLinearGradientBrush(0, -27, 35, -27, wx.Colour(222,191,162), wx.Colour(156,93,86)))
-        path2 = gc.CreatePath()
-        path2.MoveToPoint(30, -29)
-        path2.AddLineToPoint(23, 13)
-        path2.AddLineToPoint(0, 14)
-        path2.AddLineToPoint(0, -40)
-        path2.CloseSubpath()
-        gc.FillPath(path2)
+        if shaded:
+            gc.SetBrush(vp.SKIN_BASE_BRUSH)
+            gc.FillPath(path1)
+            
+            gc.SetBrush(vp.SKIN_LIT0_BRUSH)
+            path2 = gc.CreatePath()
+            path2.MoveToPoint(-42, -18)
+            path2.AddLineToPoint(-32, 12)
+            path2.AddLineToPoint(-14, 14)
+            path2.AddLineToPoint(-25, -40)
+            path2.CloseSubpath()
+            gc.FillPath(path2)
+            '''
+            gc.SetBrush(vp.SKIN_BASE_BRUSH)
+            path2 = gc.CreatePath()
+            path2.MoveToPoint(25, -40)
+            path2.AddLineToPoint(14, 14)
+            path2.AddLineToPoint(-14, 14)
+            path2.AddLineToPoint(-25, -40)
+            path2.CloseSubpath()
+            gc.FillPath(path2)
+            '''
+            '''
+            gc.SetBrush(gc.CreateLinearGradientBrush(-35, -25, 0, -27, wx.Colour(234,210,184), wx.Colour(222,191,162)))
+            path2 = gc.CreatePath()
+            path2.MoveToPoint(-33, -29)
+            path2.AddLineToPoint(-23, 13)
+            path2.AddLineToPoint(0, 14)
+            path2.AddLineToPoint(0, -40)
+            path2.CloseSubpath()
+            gc.FillPath(path2)
+            '''
+            gc.SetBrush(vp.SKIN_LIT2_BRUSH)
+            path2 = gc.CreatePath()
+            path2.MoveToPoint(42, -18)
+            path2.AddLineToPoint(32, 12)
+            path2.AddLineToPoint(14, 14)
+            path2.AddLineToPoint(25, -40)
+            path2.CloseSubpath()
+            gc.FillPath(path2)
+            '''
+            gc.SetBrush(gc.CreateLinearGradientBrush(0, -27, 35, -27, wx.Colour(222,191,162), wx.Colour(156,93,86)))
+            path2 = gc.CreatePath()
+            path2.MoveToPoint(30, -29)
+            path2.AddLineToPoint(23, 13)
+            path2.AddLineToPoint(0, 14)
+            path2.AddLineToPoint(0, -40)
+            path2.CloseSubpath()
+            gc.FillPath(path2)
         '''
         gc.StrokePath(path1)
         gc.SetBrush(wx.NullBrush)
@@ -333,13 +334,13 @@ class Viewport( wx.Panel ):
         super().__init__(parent, wx.ID_ANY)
         
         self.shapes = shapes
+        self.shaded = True
+        self.hovered_element = None
         
         self.lastx = self.lasty = 0
         self.panx, self.pany = 200, 100
         self.gridsize = 50
     
-        self.hovered_element = None
-        
         self.BLACK_BRUSH = wx.Brush(wx.Colour(0,0,0))
         self.WHITE_BRUSH = wx.Brush(wx.Colour(255,255,255))
         self.SKIN_LIT0_BRUSH = wx.Brush(wx.Colour(234,210,184))
@@ -399,12 +400,13 @@ class Viewport( wx.Panel ):
         gc.StrokeLine(0, self.pany, w, self.pany)
         gc.StrokeLine(self.panx, 0, self.panx, h)
         
+        gc.PushState()
         # pan the viewport
         gc.Translate(self.panx, self.pany)
         
         # draw shapes
         for shape in self.shapes:
-            shape.draw(self, gc)
+            shape.draw(self, gc, self.shaded)
             ''' # to draw all handles
             for handle in shape.getHandles():
                 if handle == self.hovered_element:
@@ -420,6 +422,11 @@ class Viewport( wx.Panel ):
         # draw bitmap
         if self.bgImage:
             self.bgImage.draw(gc)
+        
+        gc.PopState()
+        
+        gc.SetFont(self.GetFont(), wx.Colour(0,0,0))
+        gc.DrawText('F1: '+('Shaded' if self.shaded else 'Unshaded'), 10, 10)
         
     def OnSize(self, e):
         self.Refresh()
