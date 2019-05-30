@@ -2,6 +2,13 @@
 import math
 import wx
 
+def rotate(px, py, angle, cx=0, cy=0):
+    r = math.radians(angle)
+    qx = cx + math.cos(r) * (px-cx) - math.sin(r) * (py-cy)
+    qy = cy + math.sin(r) * (px-cx) + math.cos(r) * (py-cy)
+    
+    return qx, qy
+    
 class UIElement:
     def move(self, dx = 0, dy = 0, event=None):
         pass
@@ -102,11 +109,79 @@ class Shape:
     def addHandle(self, handle):
         self.handles[handle.name] = handle
         
-    def draw(self):
+    def draw(self, vp, gc, shaded):
         pass
     
     def getHandles(self):
         return self.handles.values()
+        
+class Proportion(Shape):
+    def __init__(self, name):
+        super().__init__(name)
+        
+        self.size = 20
+        self.num_heads = 8
+        self.start_y = -int(self.size*self.num_heads/2)
+        self.shoulder_y = self.start_y + self.size + self.size/2
+        
+    def draw(self, vp, gc, shaded):
+        gc.SetBrush(wx.NullBrush)
+        gc.SetPen(vp.TBLACK_PEN_100)
+        '''
+        # draw circles
+        for y in range(self.start_y, -self.start_y, self.size):
+            gc.DrawEllipse(-self.size/2, y, self.size, self.size)
+        '''
+        gc.SetPen(vp.BLACK_PEN)
+        
+        # ground
+        gc.StrokeLine(-100, -self.start_y+self.size/4, 100, -self.start_y+self.size/4)
+        
+        # draw head
+        gc.DrawEllipse(-self.size/2+self.size/6, self.start_y, 2*self.size/3, self.size)
+        
+        # draw neck
+        gc.StrokeLine(-self.size/10, self.start_y+self.size, -self.size/10, self.shoulder_y)
+        gc.StrokeLine(self.size/10, self.start_y+self.size, self.size/10, self.shoulder_y)
+        
+        # draw chest
+        gc.DrawEllipse(-self.size/2, self.start_y+self.size+self.size/3, self.size, self.size+self.size/2+self.size/6)
+        
+        # draw pelvis
+        gc.DrawEllipse(-self.size/2, -self.size, self.size, self.size)
+        
+        # draw shoulders
+        shoulder_x = 2*self.size/3
+        gc.StrokeLine(-shoulder_x, self.shoulder_y, shoulder_x, self.shoulder_y)
+        gc.DrawEllipse(-shoulder_x-self.size/8, self.shoulder_y-self.size/8, self.size/4, self.size/4)
+        gc.DrawEllipse(shoulder_x-self.size/8, self.shoulder_y-self.size/8, self.size/4, self.size/4)
+        
+        # draw arms
+        hand_x, hand_y = rotate(shoulder_x, 0, -25, shoulder_x, self.shoulder_y)
+        gc.StrokeLine(-shoulder_x, self.shoulder_y, -hand_x, hand_y)
+        gc.StrokeLine(shoulder_x, self.shoulder_y, hand_x, hand_y)
+        
+        # elbow
+        elbow_x, elbow_y = rotate(shoulder_x, self.shoulder_y/2, -25, shoulder_x, self.shoulder_y)
+        gc.DrawEllipse(-elbow_x-self.size/8, elbow_y, self.size/4, self.size/4)
+        gc.DrawEllipse(elbow_x-self.size/8, elbow_y, self.size/4, self.size/4)
+        
+        # hands
+        gc.DrawEllipse(-hand_x-self.size/4, hand_y, self.size/2, self.size/2)
+        gc.DrawEllipse(hand_x-self.size/4, hand_y, self.size/2, self.size/2)
+        
+        # draw legs
+        gc.DrawEllipse(-self.size/2-self.size/8, 0, self.size/4, self.size/4)
+        gc.DrawEllipse(self.size/2-self.size/8, 0, self.size/4, self.size/4)
+        
+        gc.StrokeLine(-self.size/2, self.size/8, -self.size/2, self.num_heads/2*self.size)
+        gc.StrokeLine(self.size/2, self.size/8, self.size/2, self.num_heads/2*self.size)
+        
+        gc.DrawEllipse(-self.size/2-self.size/8, self.num_heads/4*self.size, self.size/4, self.size/4)
+        gc.DrawEllipse(self.size/2-self.size/8, self.num_heads/4*self.size, self.size/4, self.size/4)
+        
+        gc.DrawEllipse(-self.size/2-self.size/8, self.num_heads/2*self.size, self.size/4, self.size/4)
+        gc.DrawEllipse(self.size/2-self.size/8, self.num_heads/2*self.size, self.size/4, self.size/4)
         
 class Head(Shape):
     def __init__(self, name):
@@ -281,10 +356,13 @@ class Head(Shape):
         path.AddLineToPoint(-self.head_handle.x-4, self.eyes_handle.y+20)
         path.AddLineToPoint(-self.head_handle.x+4, self.nose_handle.y)
         
-        gc.SetBrush(vp.SKIN_BASE_BRUSH)
-        gc.DrawPath(path)
-        gc.SetBrush(wx.NullBrush)
-        
+        if shaded:
+            gc.SetBrush(vp.SKIN_BASE_BRUSH)
+            gc.DrawPath(path)
+            gc.SetBrush(wx.NullBrush)
+        else:
+            gc.StrokePath(path)
+            
         # mouth
         path = gc.CreatePath()
         path.MoveToPoint(0, self.mouth_handle.y)
@@ -360,19 +438,29 @@ class Viewport( wx.Panel ):
         
         self.SetBackgroundStyle(wx.BG_STYLE_PAINT)
         
+        self.background_image = False
+        self.bgImage = Image('facemap.jpg', -self.panx, -self.pany)
+        
         self.InitUI()
 
     def InitUI(self):
         self.Bind(wx.EVT_ERASE_BACKGROUND, self.OnEraseBackground)
         self.Bind(wx.EVT_MOUSEWHEEL, self.OnMouseWheel)
         self.Bind(wx.EVT_MOTION, self.OnMouseMotion)
+        self.Bind(wx.EVT_KEY_DOWN, self.OnKeyDown)
         self.Bind(wx.EVT_PAINT, self.OnPaint)
         self.Bind(wx.EVT_SIZE, self.OnSize)
         
         self.font = self.GetFont()
         
-        self.bgImage = None
-        #self.bgImage = Image('facemap.jpg', -self.panx, -self.pany)
+    def OnKeyDown(self, event):
+        keycode = event.GetKeyCode()
+        if keycode == wx.WXK_F1:
+            self.background_image = not self.background_image
+        elif keycode == wx.WXK_F2:
+            self.shaded = not self.shaded
+            
+        self.Refresh()
         
     def OnEraseBackground(self, event):
         pass
@@ -420,20 +508,21 @@ class Viewport( wx.Panel ):
             self.hovered_element.draw(gc)
             
         # draw bitmap
-        if self.bgImage:
+        if self.bgImage and self.background_image:
             self.bgImage.draw(gc)
         
         gc.PopState()
         
         gc.SetFont(self.GetFont(), wx.Colour(0,0,0))
-        gc.DrawText('F1: '+('Shaded' if self.shaded else 'Unshaded'), 10, 10)
+        gc.DrawText('F1: '+('Hide Image' if self.background_image else 'Show Image'), 10, 10)
+        gc.DrawText('F2: '+('Shaded' if self.shaded else 'Unshaded'), 10, 25)
         
     def OnSize(self, e):
         self.Refresh()
 
     def OnMouseMotion(self, event):
         x, y = event.GetPosition()
-        print(x-self.panx, y-self.pany)
+        #print(x-self.panx, y-self.pany)
         dx, dy = x-self.lastx, y-self.lasty
         self.lastx, self.lasty = x, y
         
@@ -475,7 +564,8 @@ class MainFrame(wx.Frame):
 
         self.shapes = []
         # create default shapes
-        shape = Head('Head')
+        #shape = Head('Head')
+        shape = Proportion('Male')
         
         self.shapes.append(shape)
         
