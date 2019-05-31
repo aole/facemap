@@ -135,7 +135,7 @@ class Proportion(Shape):
         gc.SetPen(vp.BLACK_PEN)
         
         # ground
-        gc.StrokeLine(-100, -self.start_y+self.size/4, 100, -self.start_y+self.size/4)
+        #gc.StrokeLine(-100, -self.start_y+self.size/4, 100, -self.start_y+self.size/4)
         
         # draw head
         gc.DrawEllipse(-self.size/2+self.size/6, self.start_y, 2*self.size/3, self.size)
@@ -167,8 +167,28 @@ class Proportion(Shape):
         gc.DrawEllipse(elbow_x-self.size/8, elbow_y, self.size/4, self.size/4)
         
         # hands
-        gc.DrawEllipse(-hand_x-self.size/4, hand_y, self.size/2, self.size/2)
-        gc.DrawEllipse(hand_x-self.size/4, hand_y, self.size/2, self.size/2)
+        #gc.DrawEllipse(-hand_x-self.size/4, hand_y, self.size/2, self.size/2)
+        #gc.DrawEllipse(hand_x-self.size/4, hand_y, self.size/2, self.size/2)
+        path = gc.CreatePath()
+        path.MoveToPoint(self.size/8, 0)
+        path.AddLineToPoint(-self.size/8, 0)
+        path.AddLineToPoint(-self.size/8, self.size-self.size/4)
+        path.AddLineToPoint(0, self.size-self.size/8)
+        path.AddLineToPoint(self.size/6, self.size-self.size/2)
+        path.CloseSubpath()
+        
+        gc.PushState()
+        gc.Scale(-1, 1)
+        gc.Translate(hand_x, hand_y)
+        gc.Rotate(math.radians(-25))
+        gc.StrokePath(path)
+        gc.PopState()
+        
+        gc.PushState()
+        gc.Translate(hand_x, hand_y)
+        gc.Rotate(math.radians(-25))
+        gc.StrokePath(path)
+        gc.PopState()
         
         # draw legs
         gc.DrawEllipse(-self.size/2-self.size/8, 0, self.size/4, self.size/4)
@@ -180,8 +200,30 @@ class Proportion(Shape):
         gc.DrawEllipse(-self.size/2-self.size/8, self.num_heads/4*self.size, self.size/4, self.size/4)
         gc.DrawEllipse(self.size/2-self.size/8, self.num_heads/4*self.size, self.size/4, self.size/4)
         
-        gc.DrawEllipse(-self.size/2-self.size/8, self.num_heads/2*self.size, self.size/4, self.size/4)
-        gc.DrawEllipse(self.size/2-self.size/8, self.num_heads/2*self.size, self.size/4, self.size/4)
+        # foot
+        #gc.DrawEllipse(-self.size/2-self.size/8, self.num_heads/2*self.size, self.size/4, self.size/4)
+        #gc.DrawEllipse(self.size/2-self.size/8, self.num_heads/2*self.size, self.size/4, self.size/4)
+        path = gc.CreatePath()
+        path.MoveToPoint(self.size/2-self.size/7, self.num_heads/2*self.size+self.size/8)
+        path.AddLineToPoint(self.size/2, self.num_heads/2*self.size+self.size/8)
+        path.AddLineToPoint(self.size/2+self.size/4, self.num_heads/2*self.size+self.size/6)
+        path.AddLineToPoint(self.size/2+self.size/4, self.num_heads/2*self.size+self.size/4)
+        path.AddLineToPoint(self.size/2-self.size/7, self.num_heads/2*self.size+self.size/4)
+        path.AddLineToPoint(self.size/2-self.size/7, self.num_heads/2*self.size+self.size/6)
+        path.AddLineToPoint(self.size/2-self.size/9, self.num_heads/2*self.size)
+        path.AddLineToPoint(self.size/2+self.size/9, self.num_heads/2*self.size)
+        path.AddLineToPoint(self.size/2+self.size/4, self.num_heads/2*self.size+self.size/6)
+        
+        path.MoveToPoint(-self.size/2+self.size/7, self.num_heads/2*self.size+self.size/8)
+        path.AddLineToPoint(-self.size/2, self.num_heads/2*self.size+self.size/8)
+        path.AddLineToPoint(-self.size/2-self.size/4, self.num_heads/2*self.size+self.size/6)
+        path.AddLineToPoint(-self.size/2-self.size/4, self.num_heads/2*self.size+self.size/4)
+        path.AddLineToPoint(-self.size/2+self.size/7, self.num_heads/2*self.size+self.size/4)
+        path.AddLineToPoint(-self.size/2+self.size/7, self.num_heads/2*self.size+self.size/6)
+        path.AddLineToPoint(-self.size/2+self.size/9, self.num_heads/2*self.size)
+        path.AddLineToPoint(-self.size/2-self.size/9, self.num_heads/2*self.size)
+        path.AddLineToPoint(-self.size/2-self.size/4, self.num_heads/2*self.size+self.size/6)
+        gc.StrokePath(path)
         
 class Head(Shape):
     def __init__(self, name):
