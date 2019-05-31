@@ -135,7 +135,7 @@ class Proportion(Shape):
         gc.SetPen(vp.BLACK_PEN)
         
         # ground
-        #gc.StrokeLine(-100, -self.start_y+self.size/4, 100, -self.start_y+self.size/4)
+        gc.StrokeLine(-100, -self.start_y+self.size/4, 100, -self.start_y+self.size/4)
         
         # draw head
         gc.DrawEllipse(-self.size/2+self.size/6, self.start_y, 2*self.size/3, self.size)
@@ -194,35 +194,41 @@ class Proportion(Shape):
         gc.DrawEllipse(-self.size/2-self.size/8, 0, self.size/4, self.size/4)
         gc.DrawEllipse(self.size/2-self.size/8, 0, self.size/4, self.size/4)
         
-        gc.StrokeLine(-self.size/2, self.size/8, -self.size/2, self.num_heads/2*self.size)
-        gc.StrokeLine(self.size/2, self.size/8, self.size/2, self.num_heads/2*self.size)
+        knee_x, knee_y = self.size/2-self.size/8, self.num_heads/4*self.size+self.size/8
         
-        gc.DrawEllipse(-self.size/2-self.size/8, self.num_heads/4*self.size, self.size/4, self.size/4)
-        gc.DrawEllipse(self.size/2-self.size/8, self.num_heads/4*self.size, self.size/4, self.size/4)
+        gc.StrokeLine(-self.size/2, self.size/8, -knee_x, knee_y)
+        gc.StrokeLine(self.size/2, self.size/8, knee_x, knee_y)
         
+        gc.DrawEllipse(-knee_x-self.size/8, knee_y-self.size/8, self.size/4, self.size/4)
+        gc.DrawEllipse(knee_x-self.size/8, knee_y-self.size/8, self.size/4, self.size/4)
+        
+        foot_x, foot_y = self.size/2-self.size/8, self.num_heads/2*self.size
+        
+        gc.StrokeLine(-knee_x, knee_y, -foot_x, foot_y)
+        gc.StrokeLine(knee_x, knee_y, foot_x, foot_y)
         # foot
         #gc.DrawEllipse(-self.size/2-self.size/8, self.num_heads/2*self.size, self.size/4, self.size/4)
         #gc.DrawEllipse(self.size/2-self.size/8, self.num_heads/2*self.size, self.size/4, self.size/4)
         path = gc.CreatePath()
-        path.MoveToPoint(self.size/2-self.size/7, self.num_heads/2*self.size+self.size/8)
-        path.AddLineToPoint(self.size/2, self.num_heads/2*self.size+self.size/8)
-        path.AddLineToPoint(self.size/2+self.size/4, self.num_heads/2*self.size+self.size/6)
-        path.AddLineToPoint(self.size/2+self.size/4, self.num_heads/2*self.size+self.size/4)
-        path.AddLineToPoint(self.size/2-self.size/7, self.num_heads/2*self.size+self.size/4)
-        path.AddLineToPoint(self.size/2-self.size/7, self.num_heads/2*self.size+self.size/6)
-        path.AddLineToPoint(self.size/2-self.size/9, self.num_heads/2*self.size)
-        path.AddLineToPoint(self.size/2+self.size/9, self.num_heads/2*self.size)
-        path.AddLineToPoint(self.size/2+self.size/4, self.num_heads/2*self.size+self.size/6)
+        path.MoveToPoint(foot_x-self.size/7, foot_y+self.size/8)
+        path.AddLineToPoint(foot_x, foot_y+self.size/8)
+        path.AddLineToPoint(foot_x+self.size/4, foot_y+self.size/6)
+        path.AddLineToPoint(foot_x+self.size/4, foot_y+self.size/4)
+        path.AddLineToPoint(foot_x-self.size/7, foot_y+self.size/4)
+        path.AddLineToPoint(foot_x-self.size/7, foot_y+self.size/6)
+        path.AddLineToPoint(foot_x-self.size/9, foot_y)
+        path.AddLineToPoint(foot_x+self.size/9, foot_y)
+        path.AddLineToPoint(foot_x+self.size/4, foot_y+self.size/6)
         
-        path.MoveToPoint(-self.size/2+self.size/7, self.num_heads/2*self.size+self.size/8)
-        path.AddLineToPoint(-self.size/2, self.num_heads/2*self.size+self.size/8)
-        path.AddLineToPoint(-self.size/2-self.size/4, self.num_heads/2*self.size+self.size/6)
-        path.AddLineToPoint(-self.size/2-self.size/4, self.num_heads/2*self.size+self.size/4)
-        path.AddLineToPoint(-self.size/2+self.size/7, self.num_heads/2*self.size+self.size/4)
-        path.AddLineToPoint(-self.size/2+self.size/7, self.num_heads/2*self.size+self.size/6)
-        path.AddLineToPoint(-self.size/2+self.size/9, self.num_heads/2*self.size)
-        path.AddLineToPoint(-self.size/2-self.size/9, self.num_heads/2*self.size)
-        path.AddLineToPoint(-self.size/2-self.size/4, self.num_heads/2*self.size+self.size/6)
+        path.MoveToPoint(-foot_x+self.size/7, foot_y+self.size/8)
+        path.AddLineToPoint(-foot_x, foot_y+self.size/8)
+        path.AddLineToPoint(-foot_x-self.size/4, foot_y+self.size/6)
+        path.AddLineToPoint(-foot_x-self.size/4, foot_y+self.size/4)
+        path.AddLineToPoint(-foot_x+self.size/7, foot_y+self.size/4)
+        path.AddLineToPoint(-foot_x+self.size/7, foot_y+self.size/6)
+        path.AddLineToPoint(-foot_x+self.size/9, foot_y)
+        path.AddLineToPoint(-foot_x-self.size/9, foot_y)
+        path.AddLineToPoint(-foot_x-self.size/4, foot_y+self.size/6)
         gc.StrokePath(path)
         
 class Head(Shape):
